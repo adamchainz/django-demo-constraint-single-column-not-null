@@ -1,9 +1,30 @@
+import functools
+import operator
+
 from django.db import models
 
 
 class ScoreType(models.IntegerChoices):
     POINTS = 1, "Points"
     DURATION = 2, "Duration"
+
+
+def check_value_field_matches(*, name, enum_type):
+    q_objs = []
+    all_field_names = [f"value_{type_.name.lower()}" for type_ in enum_type]
+    for type_ in enum_type:
+        type_field_name = f"value_{type_.name.lower()}"
+        q_obj = models.Q(
+            type=type_.value,
+            **{
+                f"{field_name}__isnull": (field_name != type_field_name)
+                for field_name in all_field_names
+            },
+        )
+        q_objs.append(q_obj)
+    return models.CheckConstraint(
+        check=functools.reduce(operator.or_, q_objs), name=name,
+    )
 
 
 class Score(models.Model):
@@ -13,19 +34,7 @@ class Score(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(
-                name="score_value_matches_type",
-                check=(
-                    models.Q(
-                        type=ScoreType.POINTS,
-                        value_points__isnull=False,
-                        value_duration__isnull=True,
-                    )
-                    | models.Q(
-                        type=ScoreType.DURATION,
-                        value_points__isnull=True,
-                        value_duration__isnull=False,
-                    )
-                ),
-            )
+            check_value_field_matches(
+                name="score_value_matches_type", enum_type=ScoreType
+            ),
         ]
