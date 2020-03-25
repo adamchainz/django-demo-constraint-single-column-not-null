@@ -38,3 +38,35 @@ class Score(models.Model):
                 name="score_value_matches_type", enum_type=ScoreType
             ),
         ]
+
+
+class PointsScoreManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(type=ScoreType.POINTS)
+
+
+class PointsScore(Score):
+    objects = PointsScoreManager()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.type = ScoreType.POINTS
+
+    class Meta:
+        proxy = True
+
+
+class DurationScoreManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(type=ScoreType.DURATION)
+
+
+class DurationScore(Score):
+    objects = DurationScoreManager()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.type = ScoreType.DURATION
+
+    class Meta:
+        proxy = True
